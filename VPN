@@ -1,0 +1,114 @@
+Tunnel Based IPSec VPN Config
+				
+
+
+
+Step-1 Basic Configuration
+Basic Configuration
+R5#conf t
+R5(config)#hostname HQ
+HQ(config)#int fa0/0
+HQ(config-if)#no shut
+HQ(config-if)#ip add 197.1.1.2 255.255.255.252
+HQ(config-if)#exit
+HQ(config)#int fa0/1
+HQ(config-if)#no shut
+HQ(config-if)#ip add 192.168.1.1 255.255.255.0
+HQ(config-if)#exit
+HQ(config)#ip route 0.0.0.0 0.0.0.0 197.1.1.1
+
+R6#conf t
+R6(config)#hostname Branch
+Branch(config)#int fa0/0
+Branch(config-if)#no shut
+Branch(config-if)#ip add 198.1.1.2 255.255.255.252
+Branch(config-if)#exit
+Branch(config)#int fa0/1
+Branch(config-if)#no shut
+Branch(config-if)#ip add 192.168.2.1 255.255.255.0
+Branch(config-if)#exit
+Branch(config)#ip route 0.0.0.0 0.0.0.0 198.1.1.1
+
+Step-2 Tunnel configuration
+HQ(config)#interface Tunnel0
+HQ(config-if)#ip address 10.1.1.1 255.255.255.252
+HQ(config-if)#ip mtu 1400
+HQ(config-if)#tunnel source FastEthernet0/0
+HQ(config-if)#tunnel destination 198.1.1.2
+HQ(config-if)#exit
+HQ(config)#
+Branch(config)#interface Tunnel0
+Branch(config-if)#ip address 10.1.1.2 255.255.255.252
+Branch(config-if)#ip mtu 1400
+Branch(config-if)#tunnel source FastEthernet0/0
+Branch(config-if)#tunnel destination 197.1.1.2
+Branch(config-if)#exit
+
+Step-3 Test connectivity
+HQ#ping 10.1.1.2
+Branch#ping 10.1.1.1
+
+Step-4
+Configure Static route for remote local Network.
+HQ(config)#ip route 192.168.2.0 255.255.255.0 10.1.1.2
+Branch(config)#ip route 192.168.1.0 255.255.255.0 10.1.1.1
+
+Step-5 IPSec Encryption for the GRE Tunnel
+HQ(config)#crypto isakmp policy 10
+HQ(config-isakmp)# encr aes
+HQ(config-isakmp)# authentication pre-share
+HQ(config-isakmp)# group 2
+HQ(config-isakmp)#hash sha
+HQ(config-isakmp)#exit
+
+HQ(config)#crypto isakmp key 6 Cisco address 198.1.1.2
+HQ(config)#crypto ipsec transform-set test esp-aes 192 esp-sha-hmac
+HQ(cfg-crypto-trans)#exit
+
+Branch(config)#crypto isakmp policy 10
+Branch(config-isakmp)# encr aes
+Branch(config-isakmp)# authentication pre-share
+Branch(config-isakmp)# group 2
+Branch(config-isakmp)#hash sha
+Branch(config-isakmp)#exit
+Branch(config)#crypto isakmp key 6 Cisco address 197.1.1.2
+Branch(config)#crypto ipsec transform-set test esp-aes 192 esp-sha-hmac
+
+HQ(config)#crypto ipsec profile test_pro
+HQ(ipsec-profile)# set transform-set test
+HQ(ipsec-profile)#interface Tunnel0
+HQ(config-if)# tunnel mode ipsec IPv4
+HQ(config-if)# tunnel protection ipsec profile test_pro
+HQ(config-if)#exit
+Branch(cfg-crypto-trans)#exit
+Branch(config)#crypto ipsec profile test_pro
+Branch(ipsec-profile)# set transform-set test
+Branch(ipsec-profile)#interface Tunnel0
+Branch(config-if)# tunnel mode ipsec IPv4
+Branch(config-if)# tunnel protection ipsec profile test_pro
+Branch(config-if)#exit
+
+
+
+
+
+
+
+
+
+ISP Configuration
+R4#conf t
+R4(config)#host ISP
+ISP(config)#int fa0/0
+ISP(config-if)#ip add 197.1.1.1 255.255.255.252
+ISP(config-if)#no shut
+ISP(config-if)#exit
+ISP(config)#int fa0/1
+ISP(config-if)#ip add 198.1.1.1 255.255.255.252
+ISP(config-if)#no shut
+ISP(config-if)#end
+ISP#wr
+Building configuration...
+[OK]
+ISP#
+
