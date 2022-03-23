@@ -1,2 +1,2 @@
-# Network-Note
-About networking notes
+####################################
+Feel free to write about networking.
